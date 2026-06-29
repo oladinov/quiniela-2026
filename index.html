@@ -174,9 +174,9 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
 const BK='$2a$10$JnKDZqAGZPnFzTzJMB8QlON2OXCJBt4DSoTEOChXVC2GoYqLurWBm';
 const BU='https://api.jsonbin.io/v3/b';
 const AP='cafeconpan98!';
-let BP=localStorage.getItem('wc_bp')||null;
-let BR=localStorage.getItem('wc_br')||null;
-let BUS=localStorage.getItem('wc_bus')||null;
+let BP='6a42c131f5f4af5e294366d6';
+let BR='6a42c151f5f4af5e29436794';
+let BUS='6a42c10fda38895dfe11d3fb';
 
 const FLAGS={'Argentina':'🇦🇷','Australia':'🇦🇺','Austria':'🇦🇹','Belgium':'🇧🇪','Bosnia-Herzegovina':'🇧🇦','Brazil':'🇧🇷','Canada':'🇨🇦','Cape Verde':'🇨🇻','Colombia':'🇨🇴','Croatia':'🇭🇷','DR Congo':'🇨🇩','Ecuador':'🇪🇨','Egypt':'🇪🇬','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','France':'🇫🇷','Germany':'🇩🇪','Ghana':'🇬🇭','Ivory Coast':'🇨🇮','Japan':'🇯🇵','Mexico':'🇲🇽','Morocco':'🇲🇦','Netherlands':'🇳🇱','Norway':'🇳🇴','Paraguay':'🇵🇾','Portugal':'🇵🇹','Senegal':'🇸🇳','South Africa':'🇿🇦','Spain':'🇪🇸','Sweden':'🇸🇪','Switzerland':'🇨🇭','USA':'🇺🇸','Algeria':'🇩🇿'};
 const fl=t=>FLAGS[t]||'🏳️';
@@ -239,12 +239,10 @@ const cpin=()=>{['p0','p1','p2','p3'].forEach(id=>document.getElementById(id).va
 const hd=()=>({'Content-Type':'application/json','X-Master-Key':BK,'X-Bin-Private':'false'});
 async function bget(id){const r=await fetch(`${BU}/${id}/latest`,{headers:hd()});if(!r.ok)throw new Error('GET '+r.status);return(await r.json()).record;}
 async function bput(id,d){const r=await fetch(`${BU}/${id}`,{method:'PUT',headers:hd(),body:JSON.stringify(d)});if(!r.ok)throw new Error('PUT '+r.status);}
-async function bcreate(d,n){const r=await fetch(BU,{method:'POST',headers:{...hd(),'X-Bin-Name':n},body:JSON.stringify(d)});if(!r.ok)throw new Error('POST '+r.status);return(await r.json()).metadata.id;}
 
-async function ensureBins(){
-  if(!BUS){BUS=await bcreate({},'wc2026-users');localStorage.setItem('wc_bus',BUS);}
-  if(!BP){BP=await bcreate({},'wc2026-preds');localStorage.setItem('wc_bp',BP);}
-  if(!BR){BR=await bcreate({},'wc2026-res');localStorage.setItem('wc_br',BR);}
+async function ensureBins(){},'wc2026-users');}
+  if(!BP){BP=await bcreate({},'wc2026-preds');}
+  if(!BR){BR=await bcreate({},'wc2026-res');}
 }
 async function loadAll(){
   await ensureBins();
