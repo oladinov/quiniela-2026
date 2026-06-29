@@ -240,9 +240,8 @@ const hd=()=>({'Content-Type':'application/json','X-Master-Key':BK,'X-Bin-Privat
 async function bget(id){const r=await fetch(`${BU}/${id}/latest`,{headers:hd()});if(!r.ok)throw new Error('GET '+r.status);return(await r.json()).record;}
 async function bput(id,d){const r=await fetch(`${BU}/${id}`,{method:'PUT',headers:hd(),body:JSON.stringify(d)});if(!r.ok)throw new Error('PUT '+r.status);}
 
-async function ensureBins(){},'wc2026-users');}
-  if(!BP){BP=await bcreate({},'wc2026-preds');}
-  if(!BR){BR=await bcreate({},'wc2026-res');}
+async function ensureBins(){
+  // Bins hardcodeados, nada que crear
 }
 async function loadAll(){
   await ensureBins();
