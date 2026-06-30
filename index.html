@@ -72,6 +72,9 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
 .pw{background:var(--warn-bg);color:var(--warn-t)}
 .pz{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 .meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.rrow{display:flex;justify-content:center;align-items:center;gap:6px;background:var(--surface2);border-radius:6px;padding:4px 8px;margin:4px 0;font-size:11px}
+.rrow-lbl{color:var(--muted);font-weight:500}
+.rrow-val{color:var(--text);font-weight:700;font-size:13px}
 .sb{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:1rem}
 .ud{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:4px;vertical-align:middle}
 .mo{font-size:12px;background:var(--ok-bg);color:var(--ok-t);border-radius:var(--r);padding:3px 10px}
@@ -173,7 +176,7 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
 <script>
 const BK='$2a$10$mYYsa3J7KoapOWrWcthDH.2o6O.MY4bgbKgVm9KsIhvwebAzXuuz6';
 const BU='https://api.jsonbin.io/v3/b';
-const AP='cafeconpan98!';
+const AP_HASH='2995465';
 let BP='6a42c131f5f4af5e294366d6';
 let BR='6a42c151f5f4af5e29436794';
 let BUS='6a42c10fda38895dfe11d3fb';
@@ -288,7 +291,8 @@ function doLogout(){
 }
 
 function ca(){
-  if(document.getElementById('apw').value===AP){
+  const entered=document.getElementById('apw').value;
+  if(hp(entered)===AP_HASH){
     document.getElementById('agw').style.display='none';
     document.getElementById('ap').style.display='block';
     renderRes();
@@ -363,8 +367,9 @@ function renderMatches(){
         <div class="sc"><span class="sp">–</span>${ut?`<span class="cd">${ut}</span>`:''}</div>
         <input class="si" type="number" min="0" max="20" value="${d.a}" placeholder="?" oninput="oi('${m.id}','a',this.value)">`;
       }
+      const realRow = (res&&res.h!=='') ? `<div class="rrow"><span class="rrow-lbl">Resultado final:</span><span class="rrow-val">${res.h} - ${res.a}</span></div>` : '';
       html+=`<div class="ta"><span class="tf">${fA}</span><span class="tn${tbA?' tbd':''}">${m.away}</span></div>
-      </div><div class="meta"><span>Partido ${m.n}</span><span>${fmt(m.kickoff)} · ${m.venue}</span></div></div>`;
+      </div>${realRow}<div class="meta"><span>Partido ${m.n}</span><span>${fmt(m.kickoff)} · ${m.venue}</span></div></div>`;
     });
     html+='</div>';
   });
@@ -376,12 +381,19 @@ async function commit(){
   btn.disabled=true;btn.textContent='Guardando…';
   try{
     const sv=aP[ukey()]||{};let ch=0;
+    const now=new Date().toISOString();
     MS.forEach(m=>{
       if(isLocked(m))return;
       const d=dr[m.id];
-      if(d&&(d.h!==''||d.a!=='')){ sv[m.id]={h:d.h,a:d.a};ch++; }
+      if(d&&(d.h!==''||d.a!=='')){
+        const prev=sv[m.id];
+        const changed=!prev||prev.h!==d.h||prev.a!==d.a;
+        // Si cambió el marcador, se actualiza el timestamp de ESE partido.
+        // Si no cambió (se reguardó igual), se conserva el timestamp original.
+        sv[m.id]={h:d.h,a:d.a,t: changed ? now : (prev&&prev.t ? prev.t : now)};
+        ch++;
+      }
     });
-    if(!sv._ts)sv._ts=new Date().toISOString();
     aP[ukey()]=sv;
     await bput(BP,aP);
     setU(false);
@@ -399,20 +411,24 @@ function renderRanking(){
 function drawR(){
   const rows=Object.entries(aP).map(([uk,pr])=>{
     const[name,plat]=uk.split('||');let p=0;
+    let tsSum=0,tsCount=0;
     Object.entries(pr).forEach(([mid,pred])=>{
       if(mid==='_ts')return;
+      // Promedio de timestamps de TODOS los partidos predichos (para desempate)
+      if(pred&&pred.t){ tsSum+=new Date(pred.t).getTime(); tsCount++; }
       const res=aR[mid];if(!res||res.h==='')return;
       const pt=pts(pred,res);if(pt)p+=pt.p;
     });
-    return{name,plat,p,ts:pr._ts||'9999'};
-  }).sort((a,b)=>b.p-a.p||(a.ts<b.ts?-1:1));
+    const avgTs=tsCount>0?(tsSum/tsCount):Infinity;
+    return{name,plat,p,avgTs};
+  }).sort((a,b)=>b.p-a.p||(a.avgTs-b.avgTs));
   if(!rows.length){document.getElementById('rc').innerHTML='<div class="loading">Aún no hay predicciones guardadas.</div>';return;}
   const med=['🥇','🥈','🥉'];
   let h='<div class="card">';
   rows.forEach((u,i)=>{
-    const ts=u.ts==='9999'?'—':new Date(u.ts).toLocaleString(undefined,{timeZone:tz,month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+    const ts=(!isFinite(u.avgTs))?'—':new Date(u.avgTs).toLocaleString(undefined,{timeZone:tz,month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
     h+=`<div class="rr"><div class="rn">${med[i]||'#'+(i+1)}</div>
-      <div><div class="ru">${u.name}</div><div class="rs2">${u.plat} · 1ª captura: ${ts}</div></div>
+      <div><div class="ru">${u.name}</div><div class="rs2">${u.plat} · promedio captura: ${ts}</div></div>
       <div class="rp">${u.p} pts</div></div>`;
   });
   h+='</div>';
