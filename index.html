@@ -52,7 +52,7 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
 .rs-c{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 .mb{border-bottom:1px solid var(--border);padding:10px 0 6px}
 .mb:last-child{border-bottom:none}
-.mr{display:grid;grid-template-columns:1fr 56px 20px 56px 1fr;align-items:center;gap:6px;margin-bottom:4px}
+.mr{display:grid;grid-template-columns:1fr 56px 64px 56px 1fr;align-items:center;gap:4px;margin-bottom:4px}
 .th{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .ta{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 .tf{font-size:20px;line-height:1}
@@ -66,7 +66,6 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
 .sc{display:flex;flex-direction:column;align-items:center;gap:3px}
 .sp{font-size:18px;color:var(--muted);font-weight:600}
 .cd{font-size:9px;color:var(--warn);font-weight:600;text-align:center;white-space:nowrap}
-.cd-row{text-align:center;margin:-4px 0 2px;line-height:1}
 .pb{font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px}
 .pe{background:var(--ok-bg);color:var(--ok-t)}
 .pd{background:var(--accent-bg);color:var(--accent-t)}
@@ -96,7 +95,7 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(max-width:400px){
   .tn{font-size:11px}.si,.pv{width:46px;height:42px;font-size:18px}
-  .mr{grid-template-columns:1fr 46px 16px 46px 1fr;gap:4px}
+  .mr{grid-template-columns:1fr 46px 56px 46px 1fr;gap:3px}
   .pin-d{width:44px;height:44px;font-size:18px}
 }
 </style>
@@ -333,7 +332,7 @@ function sw(tab){
 }
 
 // Predicciones
-function oi(id,side,v){if(!dr[id])dr[id]={h:'',a:''};dr[id][side]=v;setU(true);}
+function oi(id,side,el){const v=el.value.replace(/[^0-9]/g,'').slice(0,2);el.value=v;if(!dr[id])dr[id]={h:'',a:''};dr[id][side]=v;setU(true);}
 function setU(v){
   uns=v;const btn=document.getElementById('sb'),msg=document.getElementById('sm');
   if(v){btn.innerHTML='<span class="ud"></span>Guardar predicciones';msg.innerHTML='<span class="mw">Cambios sin guardar</span>';}
@@ -364,10 +363,9 @@ function renderMatches(){
         <div class="sc">${pt?`<span class="pb ${pt.c}">${pt.p}p</span>`:'<span class="sp">–</span>'}</div>
         <div class="pv">${d.a!==''?d.a:'—'}</div>`;
       } else {
-        html+=`<input class="si" type="number" min="0" max="20" value="${d.h}" placeholder="?" oninput="oi('${m.id}','h',this.value)">
-        <div class="sc"><span class="sp">–</span></div>
-        <input class="si" type="number" min="0" max="20" value="${d.a}" placeholder="?" oninput="oi('${m.id}','a',this.value)">`
-        if(ut) html+=`<div class="cd-row"><span class="cd">${ut}</span></div>`;
+        html+=`<input class="si" type="text" inputmode="numeric" maxlength="2" value="${d.h}" placeholder="?" oninput="oi('${m.id}','h',this)">
+        <div class="sc"><span class="sp">–</span>${ut?`<span class="cd">${ut}</span>`:''}</div>
+        <input class="si" type="text" inputmode="numeric" maxlength="2" value="${d.a}" placeholder="?" oninput="oi('${m.id}','a',this)">`;
       }
       const realRow = (res&&res.h!=='') ? `<div class="rrow"><span class="rrow-lbl">Resultado final:</span><span class="rrow-val">${res.h} - ${res.a}</span></div>` : '';
       html+=`<div class="ta"><span class="tf">${fA}</span><span class="tn${tbA?' tbd':''}">${m.away}</span></div>
@@ -449,9 +447,9 @@ function renderRes(){
       const fH=tbH?'🏳️':fl(m.home),fA=tbA?'🏳️':fl(m.away),dis=tbH&&tbA?'disabled':'';
       h+=`<div class="mb"><div class="mr">
         <div class="th"><span class="tf">${fH}</span><span class="tn${tbH?' tbd':''}">${m.home}</span></div>
-        <input class="si" id="rh_${m.id}" type="number" min="0" max="20" value="${r.h||''}" placeholder="?" ${dis}>
+        <input class="si" id="rh_${m.id}" type="text" inputmode="numeric" maxlength="2" value="${r.h||''}" placeholder="?" ${dis}>
         <div class="sc"><span class="sp">–</span><span style="font-size:9px;color:var(--muted)">${fmt(m.kickoff)}</span></div>
-        <input class="si" id="ra_${m.id}" type="number" min="0" max="20" value="${r.a||''}" placeholder="?" ${dis}>
+        <input class="si" id="ra_${m.id}" type="text" inputmode="numeric" maxlength="2" value="${r.a||''}" placeholder="?" ${dis}>
         <div class="ta"><span class="tf">${fA}</span><span class="tn${tbA?' tbd':''}">${m.away}</span></div>
       </div><div class="meta"><span>Partido ${m.n}</span><span>${m.venue}</span></div></div>`;
     });
