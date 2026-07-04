@@ -139,6 +139,7 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
     </div>
     <div class="tabs">
       <button class="tab active" onclick="sw('predict')">Mis predicciones</button>
+      <button class="tab" onclick="sw('compare')">Comparar</button>
       <button class="tab" onclick="sw('ranking')">Ranking</button>
       <button class="tab" onclick="sw('results')">Admin 🔒</button>
     </div>
@@ -147,6 +148,11 @@ h1{font-size:22px;font-weight:600;margin-bottom:2px}
       <div class="tz" id="tz-note"></div>
       <div id="mc"><div class="loading"><span class="spin"></span>Cargando...</div></div>
       <div class="sb"><span id="sm"></span><button class="btn btn-p" id="sb" onclick="commit()">Guardar predicciones</button></div>
+    </div>
+
+    <div id="tab-compare" class="sec">
+      <div class="ib">Solo se muestran partidos cerrados con resultado capturado. Las predicciones de partidos abiertos son privadas.</div>
+      <div id="cc"><div class="loading"><span class="spin"></span>Cargando...</div></div>
     </div>
 
     <div id="tab-ranking" class="sec">
@@ -201,12 +207,12 @@ const MS=[
   {id:'r32_88',n:88,round:'Round of 32',home:'Australia',away:'Egypt',kickoff:'2026-07-03T17:00:00Z',venue:'AT&T Stadium, Dallas'},
   {id:'r32_86',n:86,round:'Round of 32',home:'Argentina',away:'Cape Verde',kickoff:'2026-07-03T21:00:00Z',venue:'Hard Rock, Miami'},
   {id:'r32_87',n:87,round:'Round of 32',home:'Colombia',away:'Ghana',kickoff:'2026-07-04T00:30:00Z',venue:'Arrowhead, KC'},
-  {id:'r16_90',n:90,round:'Round of 16',home:'Canada',away:'Morocco',kickoff:'2026-07-04T17:00:00Z',venue:'NRG Stadium, Houston'},
-  {id:'r16_89',n:89,round:'Round of 16',home:'France',away:'Paraguay',kickoff:'2026-07-04T21:00:00Z',venue:'Lincoln Financial, Phila.'},
-  {id:'r16_91',n:91,round:'Round of 16',home:'Norway',away:'Brazil',kickoff:'2026-07-05T20:00:00Z',venue:'MetLife, NY/NJ'},
+  {id:'r16_90',n:90,round:'Round of 16',home:'Canada',away:'Morocco',kickoff:'2026-07-04T22:00:00Z',venue:'NRG Stadium, Houston'},
+  {id:'r16_89',n:89,round:'Round of 16',home:'Paraguay',away:'France',kickoff:'2026-07-05T02:00:00Z',venue:'Lincoln Financial, Phila.'},
+  {id:'r16_91',n:91,round:'Round of 16',home:'Brazil',away:'Norway',kickoff:'2026-07-05T20:00:00Z',venue:'MetLife, NY/NJ'},
   {id:'r16_92',n:92,round:'Round of 16',home:'Mexico',away:'England',kickoff:'2026-07-06T00:00:00Z',venue:'Estadio Azteca, CDMX'},
-  {id:'r16_93',n:93,round:'Round of 16',home:'POR/CRO',away:'ESP/AUT',kickoff:'2026-07-06T19:00:00Z',venue:'AT&T Stadium, Dallas'},
-  {id:'r16_94',n:94,round:'Round of 16',home:'USA/BIH',away:'Belgium',kickoff:'2026-07-07T00:00:00Z',venue:'Lumen Field, Seattle'},
+  {id:'r16_93',n:93,round:'Round of 16',home:'Spain',away:'Portugal',kickoff:'2026-07-07T00:00:00Z',venue:'AT&T Stadium, Dallas'},
+  {id:'r16_94',n:94,round:'Round of 16',home:'USA',away:'Belgium',kickoff:'2026-07-07T05:00:00Z',venue:'Lumen Field, Seattle'},
   {id:'r16_95',n:95,round:'Round of 16',home:'ARG/CPV',away:'AUS/EGY',kickoff:'2026-07-07T16:00:00Z',venue:'Mercedes-Benz, Atlanta'},
   {id:'r16_96',n:96,round:'Round of 16',home:'SUI/ALG',away:'COL/GHA',kickoff:'2026-07-07T20:00:00Z',venue:'BC Place, Vancouver'},
   {id:'qf_97',n:97,round:'Cuartos de Final',home:'W89/W90',away:'TBD',kickoff:'2026-07-09T20:00:00Z',venue:'Gillette, Boston'},
@@ -324,10 +330,11 @@ function pts(pred,res){
 
 // Tabs
 function sw(tab){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['predict','ranking','results'][i]===tab));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['predict','compare','ranking','results'][i]===tab));
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='ranking')renderRanking();
+  else if(tab==='compare')renderCompare();
   else if(tab==='predict')renderMatches();
 }
 
@@ -404,6 +411,68 @@ async function commit(){
 }
 
 // Ranking — recarga datos frescos
+function renderCompare(){
+  const cc=document.getElementById('cc');
+  cc.innerHTML='<div class="loading"><span class="spin"></span>Actualizando...</div>';
+  Promise.all([bget(BP),bget(BR)]).then(([p,r])=>{aP=p||{};aR=r||{};drawCompare();}).catch(()=>drawCompare());
+}
+
+function drawCompare(){
+  // Solo partidos cerrados Y con resultado capturado
+  const closed=MS.filter(m=>isLocked(m)&&aR[m.id]&&aR[m.id].h!=='');
+  if(!closed.length){
+    document.getElementById('cc').innerHTML='<div class="loading">Aún no hay partidos cerrados con resultado.</div>';
+    return;
+  }
+
+  // Usuarios que tienen al menos una predicción en partidos cerrados
+  const users=Object.keys(aP).map(uk=>{
+    const[name,plat]=uk.split('||');
+    return{uk,name,plat};
+  });
+
+  const rounds=[...new Set(closed.map(m=>m.round))];
+  let html='';
+
+  rounds.forEach(round=>{
+    const ms=closed.filter(m=>m.round===round);
+    html+=`<div class="round-header" style="margin-top:1rem"><span class="rl">${round}</span></div>`;
+
+    ms.forEach(m=>{
+      const res=aR[m.id];
+      const tbH=isTBD(m.home),tbA=isTBD(m.away);
+      const fH=tbH?'🏳️':fl(m.home),fA=tbA?'🏳️':fl(m.away);
+
+      html+=`<div class="card" style="padding:.75rem 1rem;margin-bottom:8px">`;
+      // Cabecera del partido con resultado real
+      html+=`<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+        <span style="font-size:16px">${fH}</span>
+        <span style="font-size:13px;font-weight:600">${m.home}</span>
+        <span style="font-size:18px;font-weight:700;background:var(--text);color:var(--bg);padding:2px 10px;border-radius:6px">${res.h} – ${res.a}</span>
+        <span style="font-size:13px;font-weight:600">${m.away}</span>
+        <span style="font-size:16px">${fA}</span>
+      </div>`;
+
+      // Predicciones de cada usuario
+      html+='<div style="display:flex;flex-direction:column;gap:4px">';
+      users.forEach(u=>{
+        const pred=aP[u.uk]&&aP[u.uk][m.id];
+        if(!pred||pred.h===''||pred.a==='') return; // no predijo este partido
+        const pt=pts(pred,res);
+        const isMe=u.uk===ukey();
+        html+=`<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;background:${isMe?'var(--accent-bg)':'var(--surface2)'}">
+          <span style="font-size:12px;font-weight:${isMe?'700':'500'};color:${isMe?'var(--accent-t)':'var(--text)'};min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isMe?'⭐ '+u.name:u.name}</span>
+          <span style="font-size:13px;font-weight:600;min-width:40px;text-align:center">${pred.h} – ${pred.a}</span>
+          ${pt?`<span class="pb ${pt.c}">${pt.p}p</span>`:'<span style="font-size:11px;color:var(--muted)">—</span>'}
+        </div>`;
+      });
+      html+='</div></div>';
+    });
+  });
+
+  document.getElementById('cc').innerHTML=html;
+}
+
 function renderRanking(){
   document.getElementById('rc').innerHTML='<div class="loading"><span class="spin"></span>Actualizando...</div>';
   Promise.all([bget(BP),bget(BR)]).then(([p,r])=>{aP=p||{};aR=r||{};drawR();}).catch(()=>drawR());
